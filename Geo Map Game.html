@@ -1,0 +1,2122 @@
+<html><head><base href="https://websim.ai/" />
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="https://unpkg.com/topojson@3.0.2/dist/topojson.min.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    body { 
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: rgb(15,23,42);
+      background: linear-gradient(135deg, rgba(15,23,42,1) 0%, rgba(23,37,84,1) 100%);
+      color: white;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+    }
+    #menu {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin: 20px auto;
+      max-width: 900px;
+    }
+    .category-section {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .continent-btn {
+      width: 100%;
+      padding: 15px 30px;
+      font-size: 18px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: rgba(99, 102, 241, 0.1);
+      color: white;
+      border: 2px solid rgba(99, 102, 241, 0.5);
+    }
+    .continent-btn:hover {
+      transform: translateY(-2px);
+      background: rgba(99, 102, 241, 0.2);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    #game-container {
+      display: none;
+    }
+    #map-container {
+      position: relative;
+      width: 100%;
+      height: 88%;
+      max-width: 1200px;
+      margin: 0 auto 0 0;
+      background: rgba(255,255,255,0.05);
+      padding: 10px;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .country, .state {
+      fill: rgba(255,255,255,0.8);
+      stroke: rgba(0,0,0,0.15);
+      stroke-width: 1;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .country:hover, .state:hover {
+      fill: rgba(220,220,220,0.9);
+    }
+    .incorrect {
+      fill: rgba(239,68,68,0.5) !important;
+      animation: pulse 0.5s;
+    }
+    .correct-1 { fill: rgba(34,197,94,0.5) !important; }
+    .correct-2 { fill: rgba(249,115,22,0.7) !important; } 
+    .correct-3 { fill: rgba(234,179,8,0.5) !important; }
+    .failed { fill: rgba(239,68,68,0.5) !important; }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+    #game-info {
+      margin: 0 0 10px 0;
+      font-size: 18px;
+      background: rgba(255,255,255,0.05);
+      padding: 8px;
+      border-radius: 12px;
+    
+    }
+    .game-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .title-section {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .timer {
+      font-size: 1.2em;
+      padding: 4px 12px;
+      background: rgba(99, 102, 241, 0.1);
+      border-radius: 8px;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      display: none;
+    }
+    #attempts {
+      margin: 10px 0;
+      font-size: 16px;
+      color: rgba(255,255,255,0.8);
+    }
+    #game-rules {
+      max-width: 900px;
+      margin: 20px auto 40px auto;
+      padding: 30px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    h1 {
+      font-size: 3rem;
+      font-weight: bold;
+      background: linear-gradient(45deg, #60A5FA, #818CF8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 2rem;
+    }
+    .score-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(99, 102, 241, 0.2);
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-weight: bold;
+      z-index: 1000;
+    }
+    #map-container svg {
+      background-color: rgba(129, 215, 244, 0.222);
+    }
+    #map-tooltip {
+      position: fixed;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      pointer-events: none;
+      z-index: 1000;
+      display: none;
+      transform: translate(10px, 10px);
+      margin-top: 0;
+    }
+    @keyframes highlight-pulse {
+      0% { stroke-width: 0.5; stroke-opacity: 0.2; }
+      50% { stroke-width: 2; stroke-opacity: 1; }
+      100% { stroke-width: 0.5; stroke-opacity: 0.2; }
+    }
+    .highlight-target {
+      stroke: #ef4444;
+      animation: highlight-pulse 1s infinite;
+    }
+    .country-name-label {
+      fill: black;
+      font-weight: 900;
+      text-anchor: middle;
+      pointer-events: none;
+      text-shadow: -1px -1px 0 #fff, 
+                   1px -1px 0 #fff,
+                   -1px 1px 0 #fff,
+                   1px 1px 0 #fff;
+      dominant-baseline: middle;
+      user-select: none;
+      opacity: 0.8;
+      transition: opacity 0.3s;
+    }
+    .country-name-label:hover {
+      opacity: 1;
+    }
+    @keyframes wrong-pulse {
+      0% { fill: rgba(239,68,68,0.6); }
+      100% { fill: rgba(255,255,255,0.9); }
+    }
+    .wrong-animation {
+      animation: wrong-pulse 0.3s ease-out;
+    }
+    .highlighted-border {
+      stroke: black;
+      stroke-width: 2px;
+    }
+    .small-country-marker {
+      opacity: 0.8;
+      transition: all 0.3s;
+      r: 7;
+    }
+    .small-country-marker:hover {
+      opacity: 1;
+      r: 9;
+    }
+    .small-country-text {
+      pointer-events: none;
+      user-select: none;
+    }
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: rgba(99, 102, 241, 0.1);
+      color: white;
+      border: 2px solid rgba(99, 102, 241, 0.5);
+      z-index: 1000;
+    }
+    .back-btn:hover {
+      transform: translateY(-2px);
+      background: rgba(99, 102, 241, 0.2);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    .toolbar {
+      margin-top: 20px;
+      width: 25%;
+    }
+    .toolbar .controls-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: left;
+      align-items: left;
+      border: 1px solid rgba(255,255,255,0.1);
+      gap: 20px;
+      background: rgba(255,255,255,0.05);
+      padding: 20px;
+      border-radius: 12px;
+      position: relative;
+      top: -727px;
+      left: 830px;
+    }
+    .game-layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 0 15px;
+      text-align: left;
+      position: relative;
+      left: -100px;
+    }
+    .info-panel {
+      background: rgba(255,255,255,0.05);
+      padding: inherit;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+      height: fit-content;
+      max-height: 720px;
+      margin-bottom: 20px;
+      position: relative;
+      top: 75px;
+    }
+    .info-field {
+      margin-bottom: 10px;
+      text-align: left;
+    }
+    .info-field h3 {
+      font-size: 1.1em;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 10px;
+    }
+    .info-field p {
+      font-size: 1.2em;
+      color: white;
+      margin-bottom: 10px;
+    }
+    .game-status {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+    .game-mode {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      padding: 10px 0;
+    }
+    .game-mode .country-name {
+      text-align: left;
+      font-weight: bold;
+      font-size: 1.2em;
+    }
+    .game-mode .progress {
+      text-align: right;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .timer {
+      font-size: 1.4em;
+      font-weight: bold;
+      color: rgba(255,255,255,0.9);
+    }
+    .country-flag {
+      width: 100%;
+      height: 240px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-top: 8px;
+      
+    }
+    .results-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+    .results-content {
+      background: rgba(255,255,255,0.05);
+      padding: 40px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+      text-align: center;
+      max-width: 500px;
+      width: 90%;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .results-content h2 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(45deg, #60A5FA, #818CF8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 700;
+    }
+    .results-content p {
+      font-size: 1.2rem;
+      margin: 10px 0;
+      color: rgba(255,255,255,0.9);
+    }
+    .results-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+    .results-button {
+      padding: 12px 24px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: rgba(99, 102, 241, 0.1);
+      color: white;
+      border: 2px solid rgba(99, 102, 241, 0.5);
+    }
+    .results-button:hover {
+      transform: translateY(-2px);
+      background: rgba(99, 102, 241, 0.2);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    .highlight {
+      font-weight: bold;
+      color: #60A5FA;
+    }
+  </style>
+  </head>
+  <body>
+  <audio id="correct-sound" preload="auto">
+    <source src="https://audio.jukehost.co.uk/hnFDF32TKu2fSppL833pk5LlQTrhgN1O" type="audio/mp3">
+  </audio>
+  <audio id="wrong-sound" preload="auto">
+    <source src="https://audio.jukehost.co.uk/fSakC48jdo9bohiVlVO89P7y89xwZAME" type="audio/mp3">
+  </audio>
+  <div id="map-tooltip"></div>
+  <div class="score-container">Score: <span id="score">0</span></div>
+  <button onclick="returnToMenu()" class="back-btn">Back to Menu</button>
+  <div class="container">
+    <h1 id="game-title">Geography Challenge</h1>
+    
+    <div id="start-screen">
+      <div id="game-rules" class="shadow-xl">
+        <h2 class="text-2xl font-bold mb-4">Game Rules</h2>
+        <p class="text-gray-300 mb-2">1. Select a continent to begin</p>
+        <p class="text-gray-300 mb-2">2. Find the highlighted country on the map</p>
+        <p class="text-gray-300 mb-2">3. You have 3 attempts for each country</p>
+        <p class="text-gray-300">4. Score points by finding countries quickly!</p>
+      </div>
+      
+      <div id="menu" class="flex flex-col gap-8">
+        <!-- Continents Category -->
+        <div class="category-section">
+          <h2 class="text-2xl font-bold mb-4 text-blue-400">Continents</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <button class="continent-btn" data-continent="africa">Africa</button>
+            <button class="continent-btn" data-continent="asia">Asia</button>
+            <button class="continent-btn" data-continent="europe">Europe</button>
+            <button class="continent-btn" data-continent="north-america">North America</button>
+            <button class="continent-btn" data-continent="south-america">South America</button>
+            <button class="continent-btn" data-continent="oceania">Oceania</button>
+          </div>
+        </div>
+
+        <!-- Custom Maps Category -->
+        <div class="category-section">
+          <h2 class="text-2xl font-bold mb-4 text-blue-400">Custom Maps</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <button class="continent-btn" data-continent="us-states">United States</button>
+            <button class="continent-btn" data-continent="middle-east">Middle East</button>
+            <button class="continent-btn" data-continent="world">World</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <div id="game-container">
+      <div class="game-layout">
+        <div class="info-panel loading">
+          <div class="game-status">
+            <div class="game-mode"></div>
+            <div class="timer">0:00</div>
+          </div>
+          <div class="country-info">
+            <div class="info-field">
+              <h3>Capital</h3>
+              <p class="capital-value">Loading...</p>
+            </div>
+            <div class="info-field">
+              <h3>Population</h3>
+              <p class="population-value">Loading...</p>
+            </div>
+            <div class="info-field">
+              <h3>Language</h3>
+              <p class="language-value">Loading...</p>
+            </div>
+            <div class="info-field">
+              <h3>Currency Or Party</h3>
+              <p class="currency-value">Loading...</p>
+            </div>
+            <div class="info-field">
+              <h3>Image</h3>
+              <img class="country-flag" src="" alt="Country flag" />
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <div id="game-info" class="game-info">
+            <div class="title-section">
+              <p class="text-xl font-bold">Find this country: <span id="current-country" class="text-blue-400">Loading...</span></p>
+              <div class="timer">0:00</div>
+            </div>
+            <p id="attempts" class="text-lg">Attempts remaining: 3</p>
+          </div>
+          <div id="map-container" class="shadow-2xl"></div>
+          <div id="toolbar" class="toolbar">
+            <div class="controls-container">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="show-names" class="w-4 h-4 rounded">
+                <span>Show all names</span>
+              </label>
+              
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="sound-toggle" class="w-4 h-4 rounded" uncchecked>
+                <span>Sound effects</span>
+              </label>
+              
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="free-mode" class="w-4 h-4 rounded">
+                <span>Free Mode</span>
+              </label>
+
+              <button onclick="restartGame()" class="px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 rounded-lg transition-all border border-indigo-500/50">
+                Restart Game
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="results-screen">
+    <div class="results-content">
+      <h2>Congratulations!</h2>
+      <div class="results-stats"></div>
+      <div class="results-buttons">
+        <button class="results-button" onclick="handleTryAgain()">Try Again</button>
+        <button class="results-button" onclick="handleNewMap()">New Map</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showAllCountryNames() {
+      // Remove any existing labels first
+      d3.selectAll('.country-label').remove();
+      
+      if (gameState.currentContinent === 'us-states') {
+        // For US states
+        d3.selectAll('.state').each(function(d) {
+          if (!d || !d.properties) return;
+          
+          let stateProjection;
+          if (d.properties.name === 'Alaska') {
+            stateProjection = alaskaProjection;
+          } else if (d.properties.name === 'Hawaii') {
+            stateProjection = hawaiiProjection;
+          } else {
+            stateProjection = projection;
+          }
+          
+          // Calculate area of the state for dynamic text sizing
+          const area = d3.geoArea(d);
+          const fontSize = Math.max(8, Math.min(14, Math.sqrt(area) * 1000));
+          
+          const bounds = d3.geoPath().projection(stateProjection).bounds(d);
+          const centroid = [
+            (bounds[0][0] + bounds[1][0]) / 2,
+            (bounds[0][1] + bounds[1][1]) / 2
+          ];
+          
+          if (centroid && centroid.every(isFinite)) {
+            g.append('text')
+              .attr('class', 'country-label country-name-label')
+              .attr('x', centroid[0])
+              .attr('y', centroid[1])
+              .style('font-size', `${fontSize}px`)
+              .text(d.properties.name);
+          }
+        });
+      } else {
+        // For countries
+        // First, collect all labels and sort by area
+        const labels = [];
+        
+        // Add labels for regular countries
+        d3.selectAll('.country').each(function(d) {
+          if (!d || !d.properties) return;
+          const centroid = path.centroid(d);
+          const area = d3.geoArea(d);
+          
+          if (centroid && centroid.every(isFinite)) {
+            labels.push({
+              name: d.properties.name,
+              x: centroid[0],
+              y: centroid[1],
+              area: area
+            });
+          }
+        });
+        
+        // Add labels for small countries with markers
+        d3.selectAll('.small-country-marker').each(function() {
+          const x = parseFloat(d3.select(this).attr('cx'));
+          const y = parseFloat(d3.select(this).attr('cy'));
+          const title = d3.select(this).select('title');
+          if (!title.empty()) {
+            labels.push({
+              name: title.text(),
+              x: x,
+              y: y + 15,
+              area: 0.0001 // Small fixed area for marker countries
+            });
+          }
+        });
+        
+        // Sort labels by area (largest first)
+        labels.sort((a, b) => b.area - a.area);
+        
+        // Function to check if a label overlaps with existing labels
+        const labelPositions = [];
+        function checkOverlap(x, y, width, height) {
+          for (const pos of labelPositions) {
+            if (Math.abs(x - pos.x) < (width + pos.width) / 2 &&
+                Math.abs(y - pos.y) < (height + pos.height) / 2) {
+              return true;
+            }
+          }
+          return false;
+        }
+        
+        // Add labels with overlap prevention
+        labels.forEach(label => {
+          const fontSize = Math.max(8, Math.min(14, Math.sqrt(label.area) * 1000));
+          const estimatedWidth = label.name.length * fontSize * 0.6;
+          const estimatedHeight = fontSize * 1.2;
+          
+          // Try different positions if there's overlap
+          let finalX = label.x;
+          let finalY = label.y;
+          const offsets = [[0,0], [0,1], [0,-1], [1,0], [-1,0], [1,1], [-1,1], [1,-1], [-1,-1]];
+          
+          for (const [dx, dy] of offsets) {
+            const testX = label.x + dx * estimatedWidth;
+            const testY = label.y + dy * estimatedHeight;
+            
+            if (!checkOverlap(testX, testY, estimatedWidth, estimatedHeight)) {
+              finalX = testX;
+              finalY = testY;
+              labelPositions.push({
+                x: finalX,
+                y: finalY,
+                width: estimatedWidth,
+                height: estimatedHeight
+              });
+              break;
+            }
+          }
+          
+          g.append('text')
+            .attr('class', 'country-label country-name-label')
+            .attr('x', finalX)
+            .attr('y', finalY)
+            .style('font-size', `${fontSize}px`)
+            .text(label.name);
+        });
+      }
+    }
+
+    function hideAllCountryNames() {
+      d3.selectAll('.country-label').remove();
+    }
+
+    // First, define statePostalCodes
+    const statePostalCodes = {
+      'Alabama': 'AL',
+      'Alaska': 'AK', 
+      'Arizona': 'AZ',
+      'Arkansas': 'AR',
+      'California': 'CA',
+      'Colorado': 'CO',
+      'Connecticut': 'CT',
+      'Delaware': 'DE',
+      'Florida': 'FL',
+      'Georgia': 'GA',
+      'Hawaii': 'HI',
+      'Idaho': 'ID',
+      'Illinois': 'IL',
+      'Indiana': 'IN',
+      'Iowa': 'IA',
+      'Kansas': 'KS',
+      'Kentucky': 'KY',
+      'Louisiana': 'LA',
+      'Maine': 'ME',
+      'Maryland': 'MD',
+      'Massachusetts': 'MA',
+      'Michigan': 'MI',
+      'Minnesota': 'MN',
+      'Mississippi': 'MS',
+      'Missouri': 'MO',
+      'Montana': 'MT',
+      'Nebraska': 'NE',
+      'Nevada': 'NV',
+      'New Hampshire': 'NH',
+      'New Jersey': 'NJ',
+      'New Mexico': 'NM',
+      'New York': 'NY',
+      'North Carolina': 'NC',
+      'North Dakota': 'ND',
+      'Ohio': 'OH',
+      'Oklahoma': 'OK',
+      'Oregon': 'OR',
+      'Pennsylvania': 'PA',
+      'Rhode Island': 'RI',
+      'South Carolina': 'SC',
+      'South Dakota': 'SD',
+      'Tennessee': 'TN',
+      'Texas': 'TX',
+      'Utah': 'UT',
+      'Vermont': 'VT',
+      'Virginia': 'VA',
+      'Washington': 'WA',
+      'West Virginia': 'WV',
+      'Wisconsin': 'WI',
+      'Wyoming': 'WY'
+    };
+
+    // Next, define continentData
+    const continentData = {
+      'africa': {
+        name: 'Africa',
+        countries: ['Algeria', 'Angola', 'Benin', 'Botswana', 'Burkina Faso', 'Burundi', 'Cameroon', 'Cape Verde', 'Central African Republic', 'Chad', 'Comoros', 'Congo', 'Democratic Republic of the Congo', 'Djibouti', 'Egypt', 'Equatorial Guinea', 'Eritrea', 'Ethiopia', 'Gabon', 'Gambia', 'Ghana', 'Guinea', 'Guinea-Bissau', 'Ivory Coast', 'Kenya', 'Lesotho', 'Liberia', 'Libya', 'Madagascar', 'Malawi', 'Mali', 'Mauritius', 'Morocco', 'Mozambique', 'Namibia', 'Niger', 'Nigeria', 'Rwanda', 'São Tomé and Príncipe', 'Senegal', 'Seychelles', 'Sierra Leone', 'Somalia', 'South Africa', 'South Sudan', 'Sudan', 'Swaziland', 'Tanzania', 'Togo', 'Tunisia', 'Uganda', 'Zambia', 'Zimbabwe'],
+        center: [20, 7],
+        scale: 650
+      },
+      'asia': {
+        name: 'Asia',
+        countries: ['Afghanistan', 'Armenia', 'Azerbaijan', 'Bahrain', 'Bangladesh', 'Bhutan', 'Brunei', 'Cambodia', 'China', 'Cyprus', 'Georgia', 'India', 'Indonesia', 'Iran', 'Iraq', 'Israel', 'Japan', 'Jordan', 'Kazakhstan', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Lebanon', 'Malaysia', 'Maldives', 'Mongolia', 'Myanmar', 'Nepal', 'North Korea', 'Oman', 'Pakistan', 'Palestine', 'Philippines', 'Qatar', 'Russia', 'Saudi Arabia', 'Singapore', 'South Korea', 'Sri Lanka', 'Syria', 'Taiwan', 'Tajikistan', 'Thailand', 'Timor-Leste', 'Turkey', 'Turkmenistan', 'United Arab Emirates', 'Uzbekistan', 'Vietnam', 'Yemen'],
+        center: [90, 35],
+        scale: 600
+      },
+      'europe': {
+        name: 'Europe',
+        countries: ['Albania', 'Andorra', 'Austria', 'Belarus', 'Belgium', 'Bosnia and Herz.', 'Bulgaria', 'Croatia', 'Czechia', 'Denmark', 'Estonia', 'Finland', 'France', 'Germany', 'Greece', 'Hungary', 'Iceland', 'Ireland', 'Italy', 'Latvia', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Scotland', 'Malta', 'Moldova', 'Monaco', 'Montenegro', 'Netherlands', 'Macedonia', 'Norway', 'Poland', 'Portugal', 'Romania', 'Russia', 'San Marino', 'Serbia', 'Slovakia', 'Slovenia', 'Spain', 'Sweden', 'Switzerland', 'Ukraine', 'United Kingdom', 'Vatican City'],
+        center: [15, 50],
+        scale: 950
+      },
+      'north-america': {
+        name: 'North America',
+        countries: ['Antigua and Barbuda', 'Bahamas', 'Barbados', 'Belize', 'Canada', 'Costa Rica', 'Puerto Rico', 'Cuba', 'Dominican Rep.', 'El Salvador', 'Grenada', 'Guatemala', 'Haiti', 'Honduras', 'Jamaica', 'Mexico', 'Nicaragua', 'Panama', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Trinidad and Tobago', 'United States of America'],
+        center: [-100, 40],
+        scale: 400
+      },
+      'south-america': {
+        name: 'South America',
+        countries: ['Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 'Ecuador', 'Guyana', 'Paraguay', 'Peru', 'Suriname', 'Uruguay', 'Venezuela'],
+        center: [-60, -15],
+        scale: 500
+      },
+      'oceania': {
+        name: 'Oceania',
+        countries: ['Australia', 'Fiji', 'Kiribati', 'Marshall Islands', 'Micronesia', 'Nauru', 'New Zealand', 'Palau', 'Papua New Guinea', 'Samoa', 'Solomon Islands', 'Tonga', 'Tuvalu', 'Vanuatu'],
+        center: [130, -20],
+        scale: 500
+      },
+      'us-states': {
+        name: 'United States',
+        countries: [
+          'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 
+          'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia',
+          'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa',
+          'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland',
+          'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri',
+          'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey',
+          'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio',
+          'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina',
+          'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
+          'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
+        ],
+        center: [-98, 38],
+        scale: 1200,
+      },
+      'middle-east': {
+        name: 'Middle East',
+        countries: [
+          'Saudi Arabia', 
+          'Iran', 
+          'Iraq', 
+          'Turkey', 
+          'Syria', 
+          'Yemen', 
+          'Jordan', 
+          'United Arab Emirates', 
+          'Israel', 
+          'Lebanon', 
+          'Oman', 
+          'Kuwait', 
+          'Qatar', 
+          'Bahrain',
+          'Palestine'
+        ],
+        center: [47, 30],
+        scale: 1200
+      },
+      'world': {
+        name: 'World',
+        countries: [], // This will be populated after all continents are defined
+        center: [0, 20],
+        scale: 200
+      }
+    };
+
+    // After all continents are defined, populate the world countries
+    continentData.world.countries = [
+      ...continentData.africa.countries,
+      ...continentData.asia.countries,
+      ...continentData.europe.countries,
+      ...continentData['north-america'].countries,
+      ...continentData['south-america'].countries,
+      ...continentData.oceania.countries
+    ].filter((country, index, self) => self.indexOf(country) === index);
+
+    // Then define gameState
+    const gameState = {
+      currentContinent: null,
+      attempts: 3,
+      correctCountry: null,
+      usedCountries: new Set(),
+      currentScore: 0,
+      countryAttempts: {},
+      soundEnabled: false,
+      startTime: null,
+      timerInterval: null,
+      timerStarted: false,
+      countryData: {},
+      totalTime: 0,
+      freeMode: false,
+      gamePaused: false,
+      originalCorrectCountry: null
+    };
+
+    // Function to select a random country from the current continent
+    function selectRandomCountry() {
+      if (gameState.gamePaused) return;
+
+      // Reset attempts and clear any previous highlights
+      gameState.attempts = 3;
+      document.getElementById('attempts').textContent = `Attempts remaining: ${gameState.attempts}`;
+
+      d3.selectAll('.highlight-target').classed('highlight-target', false);
+      d3.selectAll('.country-label').remove();
+      d3.selectAll('.highlighted-border').classed('highlighted-border', false);
+
+      // Get unused countries for current continent
+      const availableCountries = continentData[gameState.currentContinent].countries
+        .filter(country => !gameState.usedCountries.has(country));
+
+      // If all countries used, reset and start over
+      if (availableCountries.length === 0) {
+        gameState.totalTime = Math.floor((Date.now() - gameState.startTime) / 1000);
+        const minutes = Math.floor(gameState.totalTime / 60);
+        const seconds = gameState.totalTime % 60;
+        
+        const resultsScreen = document.querySelector('.results-screen');
+        const resultsStats = document.querySelector('.results-stats');
+        
+        resultsStats.innerHTML = `
+          <p>You've completed the ${continentData[gameState.currentContinent].name} map!</p>
+          <p>Final Score: <span class="highlight">${gameState.currentScore}</span></p>
+          <p>Total Time: <span class="highlight">${minutes}:${seconds.toString().padStart(2, '0')}</span></p>
+        `;
+        
+        resultsScreen.style.display = 'flex';
+        return;
+      }
+
+      // Select random country from available ones
+      const randomIndex = Math.floor(Math.random() * availableCountries.length);
+      const newCountry = availableCountries[randomIndex];
+      
+      gameState.correctCountry = newCountry;
+      gameState.usedCountries.add(newCountry);
+      
+      // Update display
+      document.getElementById('current-country').textContent = newCountry;
+      
+      // Update info panel with new country data
+      updateInfoPanel(newCountry);
+    }
+
+    const tooltip = document.getElementById('map-tooltip');
+  
+    let projection = d3.geoMercator();
+    let path = d3.geoPath().projection(projection);
+    let zoom;
+    let g;
+    let alaskaProjection;
+    let hawaiiProjection;
+  
+    document.querySelectorAll('.continent-btn').forEach(button => {
+      button.addEventListener('click', async () => {
+        const continent = button.dataset.continent;
+        gameState.currentContinent = continent;
+        const continentInfo = continentData[continent];
+        document.getElementById('game-title').textContent = 
+          `${continentInfo.name} (${continentInfo.countries.length} countries)`;
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('game-container').style.display = 'block';
+        await loadMap(continent);
+      });
+    });
+  
+    async function loadMap(continent) {
+      // Reset projections at the start
+      projection = d3.geoMercator();
+      path = d3.geoPath().projection(projection);
+      alaskaProjection = null;
+      hawaiiProjection = null;
+
+      if (continent === 'us-states') {
+        const response = await fetch('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json');
+        const us = await response.json();
+        const states = topojson.feature(us, us.objects.states);
+        
+        projection = d3.geoAlbers()
+          .rotate([96, 0])
+          .center([0, 38])
+          .parallels([29.5, 45.5])
+          .scale(800)  // Reduced from 1000
+          .translate([500, 250]);  // Adjusted Y from 300 to 250
+          
+        alaskaProjection = d3.geoConicEqualArea()
+          .rotate([154, 0])
+          .center([0, 62])
+          .parallels([55, 65])
+          .scale(300)  // Reduced from 400
+          .translate([150, 390]);  // Adjusted Y from 440 to 390
+
+        hawaiiProjection = d3.geoConicEqualArea()
+          .rotate([157, 0])
+          .center([0, 21])
+          .parallels([8, 18])
+          .scale(800)  // Reduced from 1000
+          .translate([300, 410]);  // Adjusted Y from 460 to 410
+
+        const isAlaska = (d) => d.properties.name === 'Alaska';
+        const isHawaii = (d) => d.properties.name === 'Hawaii';
+
+        const path = d3.geoPath().projection((d) => {
+          if (isAlaska(d)) return alaskaProjection;
+          if (isHawaii(d)) return hawaiiProjection;
+          return projection;
+        });
+
+        d3.select('#map-container svg').remove();
+        
+        const width = 1000;
+        const height = 600;
+        
+        const svg = d3.select('#map-container')
+          .append('svg')
+          .attr('viewBox', `0 0 ${width} ${height}`)
+          .attr('width', '100%')
+          .attr('height', '100%');
+
+        g = svg.append('g');
+
+        g.selectAll('path')
+          .data(states.features)
+          .enter()
+          .append('path')
+          .attr('class', 'state')
+          .attr('d', (d) => {
+            if (isAlaska(d)) {
+              return d3.geoPath().projection(alaskaProjection)(d);
+            }
+            if (isHawaii(d)) {
+              return d3.geoPath().projection(hawaiiProjection)(d);
+            }
+            return d3.geoPath().projection(projection)(d);
+          })
+          .on('click', handleCountryClick)
+          .text(d => d.properties.name);
+
+        zoom = d3.zoom()
+          .scaleExtent([0.5, 8])
+          .on('zoom', (event) => {
+            g.attr('transform', event.transform);
+          });
+
+        svg.call(zoom);
+
+        // Add this line to initiate the game for US states
+        selectRandomCountry(); // Add this line to fix the US states initialization
+
+        return;
+      }
+      
+      const response = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
+      const world = await response.json();
+      const countries = topojson.feature(world, world.objects.countries);
+      
+      d3.select('#map-container svg').remove();
+      
+      const width = 1000;
+      const height = 600;
+      
+      const svg = d3.select('#map-container')
+        .append('svg')
+        .attr('viewBox', `0 0 ${width} ${height}`)
+        .attr('width', '100%')
+        .attr('height', '100%');
+    
+      g = svg.append('g');
+    
+      const continentInfo = continentData[continent];
+      projection.center(continentInfo.center).scale(continentInfo.scale);
+    
+      zoom = d3.zoom()
+        .scaleExtent([1, 8])
+        .on('zoom', (event) => {
+          g.attr('transform', event.transform);
+        });
+    
+      svg.call(zoom);
+    
+      g.selectAll('path')
+        .data(countries.features)
+        .enter()
+        .append('path')
+        .attr('class', 'country')
+        .attr('d', path)
+        .on('click', handleCountryClick);
+    
+      const mapContainer = document.getElementById('map-container');
+      mapContainer.addEventListener('mousemove', (e) => {
+        const rect = mapContainer.getBoundingClientRect();
+        if (e.clientX >= rect.left && e.clientX <= rect.right &&
+            e.clientY >= rect.top && e.clientY <= rect.bottom) {
+          tooltip.style.display = 'block';
+          tooltip.style.left = `${e.clientX}px`;
+          tooltip.style.top = `${e.clientY}px`;
+          tooltip.innerHTML = `Find: <strong>${gameState.correctCountry}</strong>`;
+        }
+      });
+    
+      mapContainer.addEventListener('mouseleave', () => {
+        tooltip.style.display = 'none';
+      });
+    
+      Object.entries(gameState.countryAttempts).forEach(([countryName, attempts]) => {
+        const className = attempts === 1 ? 'correct-1' : 
+                         attempts === 2 ? 'correct-2' : 
+                         attempts === 3 ? 'correct-3' : 
+                         'failed';
+        
+        g.selectAll('path')
+          .filter(d => d.properties.name === countryName)
+          .classed(className, true);
+      });
+    
+      const smallCountries = {
+    'europe': [
+        'Vatican City', 
+        'San Marino', 
+        'Monaco', 
+        'Liechtenstein', 
+        'Andorra', 
+        'Luxembourg', 
+        'Malta',
+        'Scotland'
+    ],
+    'asia': [
+        'Singapore', 
+        'Bahrain', 
+        'Maldives', 
+        'Brunei',
+        'Qatar'
+    ],
+    'oceania': [
+        'Nauru',
+        'Tuvalu', 
+        'Palau',
+        'Marshall Islands',
+        'Micronesia'
+    ],
+    'north-america': [
+        'Saint Kitts and Nevis',
+        'Saint Lucia', 
+        'Saint Vincent and the Grenadines',
+        'Grenada',
+        'Barbados',
+        'Antigua and Barbuda'
+    ],
+    'africa': [
+        'Seychelles',
+        'São Tomé and Príncipe',
+        'Cape Verde',
+        'Comoros',
+        'Mauritius'
+    ],
+    'world': [
+        'Vatican City', 
+        'San Marino', 
+        'Monaco', 
+        'Liechtenstein', 
+        'Andorra', 
+        'Luxembourg', 
+        'Malta',
+        'Scotland',
+        'Singapore', 
+        'Bahrain', 
+        'Maldives', 
+        'Brunei',
+        'Qatar',
+        'Nauru',
+        'Tuvalu', 
+        'Palau',
+        'Marshall Islands',
+        'Micronesia',
+        'Saint Kitts and Nevis',
+        'Saint Lucia', 
+        'Saint Vincent and the Grenadines',
+        'Grenada',
+        'Barbados',
+        'Antigua and Barbuda',
+        'Seychelles',
+        'São Tomé and Príncipe',
+        'Cape Verde',
+        'Comoros',
+        'Mauritius'
+    ],
+    'middle-east': [ // Added comma after 'world' and now 'middle-east' is properly registered
+        'Bahrain'
+    ]
+};
+
+    
+      if (smallCountries[continent]) {
+        addSmallCountryMarkers(g, countries, smallCountries[continent]);
+      }
+    
+      selectRandomCountry();
+    }
+  
+    function addSmallCountryMarkers(g, countries, smallCountries) {
+      const manualCoordinates = {
+        'Vatican City': [12.453386, 41.902916],
+        'San Marino': [12.441770, 43.942360],
+        'Monaco': [7.419720, 43.731142],
+        'Malta': [14.375416, 35.937496],
+        'Scotland': [-4.2026, 56.4907],
+        'Andorra': [1.521801, 42.506287],
+        'Liechtenstein': [9.555373, 47.166000],
+        'Singapore': [103.8198, 1.3521],
+        'Bahrain': [50.5832, 26.0667],
+        'Maldives': [73.2207, 3.2028],
+        'Brunei': [114.7277, 4.5353],
+        'Qatar': [51.1839, 25.3548],
+        'Nauru': [166.9315, -0.5228],
+        'Tuvalu': [179.1942, -7.1095],
+        'Palau': [134.5825, 7.5149],
+        'Marshall Islands': [171.1845, 7.1315],
+        'Micronesia': [158.2478, 6.8878],
+        'Saint Kitts and Nevis': [-63.982998, 18.357822],
+        'Saint Lucia': [-59.975036, 16.109444],
+        'Saint Vincent and the Grenadines': [-61.287228, 14.252817],
+        'Grenada': [-61.748426, 12.116500],
+        'Barbados': [-58.543198, 13.193887],
+        'Antigua and Barbuda': [-61.846772, 17.824655],
+        'Seychelles': [55.4919, -4.6796],
+        'São Tomé and Príncipe': [6.6131, 0.1864],
+        'Cape Verde': [-23.4162, 15.1115],
+        'Comoros': [43.3333, -11.6455],
+        'Mauritius': [57.5522, -20.3484]
+      };
+    
+      const smallCountryData = countries.features.filter(d => 
+        smallCountries.includes(d.properties.name)
+      );
+    
+      function getCoordinates(d) {
+        if (manualCoordinates[d.properties.name]) {
+          return projection(manualCoordinates[d.properties.name]);
+        }
+        const centroid = path.centroid(d);
+        return centroid.every(isFinite) ? centroid : null;
+      }
+    
+      g.selectAll('.small-country-marker')
+        .data(smallCountryData)
+        .enter()
+        .append('circle')
+        .attr('class', 'small-country-marker')
+        .attr('cx', d => {
+          const coords = getCoordinates(d);
+          return coords ? coords[0] : 0;
+        })
+        .attr('cy', d => {
+          const coords = getCoordinates(d);
+          return coords ? coords[1] : 0;
+        })
+        .attr('r', 5)
+        .attr('fill', 'white')
+        .attr('stroke', 'black')
+        .attr('stroke-width', 1)
+        .attr('cursor', 'pointer')
+        .style('display', d => getCoordinates(d) ? 'block' : 'none')
+        .on('click', handleCountryClick)
+        .text(d => d.properties.name);
+    
+      smallCountries.forEach(countryName => {
+        const exists = smallCountryData.some(d => d.properties.name === countryName);
+        if (!exists && manualCoordinates[countryName]) {
+          const coords = projection(manualCoordinates[countryName]);
+          g.append('circle')
+            .attr('class', 'small-country-marker')
+            .attr('cx', coords[0])
+            .attr('cy', coords[1])
+            .attr('r', 5)
+            .attr('fill', 'white')
+            .attr('stroke', 'black')
+            .attr('stroke-width', 1)
+            .attr('cursor', 'pointer')
+            // Ensure click is on the circle, not the title
+            .on('click', function(event) {
+              console.log('Small country marker clicked:', countryName); // Debug log
+              const syntheticData = {
+                properties: {
+                  name: countryName
+                }
+              };
+              // Call the click handler with synthetic data
+              handleCountryClick(event, syntheticData);
+            })
+            .append('title')  // Add title after click handler
+            .text(countryName); // Set the title for hover tooltip
+        }
+      });
+    }
+  
+    function isPointInViewport(x, y) {
+      const transform = d3.zoomTransform(d3.select('#map-container svg').node());
+      const svg = d3.select('#map-container svg').node();
+      const viewBox = svg.viewBox.baseVal;
+      
+      const screenX = x * transform.k + transform.x;
+      const screenY = y * transform.k + transform.y;
+      
+      return screenX >= 0 && screenX <= viewBox.width && 
+             screenY >= 0 && screenY <= viewBox.height;
+    }
+  
+    function isCountryInView(countryData) {
+      if (!countryData) return true;
+  
+      if (!countryData.type) {
+        const element = d3.selectAll('circle')
+          .filter(function() {
+            const title = d3.select(this).select('title');
+            return !title.empty() && title.text() === countryData.properties.name;
+          });
+        if (!element.empty()) {
+          const x = parseFloat(element.attr('cx'));
+          const y = parseFloat(element.attr('cy'));
+          return isPointInViewport(x, y);
+        }
+        return true;
+      }
+  
+      const bounds = path.bounds(countryData);
+      
+      return isPointInViewport(bounds[0][0], bounds[0][1]) || 
+             isPointInViewport(bounds[1][0], bounds[0][1]) || 
+             isPointInViewport(bounds[0][0], bounds[1][1]) || 
+             isPointInViewport(bounds[1][0], bounds[1][1]);
+    }
+  
+    function centerOnCountry(countryData) {
+      if (isCountryInView(countryData)) {
+        return;
+      }
+      
+      let x, y;
+      
+      if (countryData.type) {
+        const bounds = path.bounds(countryData);
+        x = (bounds[0][0] + bounds[1][0]) / 2;
+        y = (bounds[0][1] + bounds[1][1]) / 2;
+      } else {
+        const element = d3.selectAll('circle')
+          .filter(d => d.properties.name === countryData.properties.name);
+        x = parseFloat(element.attr('cx'));
+        y = parseFloat(element.attr('cy'));
+      }
+      
+      const transform = d3.zoomTransform(d3.select('#map-container svg').node());
+      const currentScale = transform.k;
+      
+      const translate = [500 - currentScale * x, 300 - currentScale * y];
+      
+      d3.select('#map-container svg')
+        .transition()
+        .duration(750)
+        .call(zoom.transform, d3.zoomIdentity
+          .translate(translate[0], translate[1])
+          .scale(currentScale));
+    }
+  
+    function handleCountryClick(event, d) {
+      if (gameState.freeMode) {
+        handleFreeModeClick(event, d);
+        return;
+      }
+  
+      if (!gameState.timerStarted) {
+        gameState.timerStarted = true;
+        startTimer();
+        const timerElement = document.querySelector('.timer');
+        if (timerElement) {
+          timerElement.style.display = 'block';
+        }
+      }
+      
+      if (gameState.attempts <= 0) {
+        let clickedCountryName;
+        if (d && d.properties) {
+          clickedCountryName = d.properties.name;
+        } else if (event.target.tagName === 'circle') {
+          const title = d3.select(event.target).select('title');
+          if (!title.empty()) {
+            clickedCountryName = title.text();
+          }
+        }
+    
+        if (clickedCountryName === gameState.correctCountry) {
+          d3.selectAll('.highlight-target').classed('highlight-target', false);
+          d3.selectAll('.country-label').remove();
+          d3.selectAll('.highlighted-border').classed('highlighted-border', false);
+          
+          gameState.countryAttempts[gameState.correctCountry] = 4;
+          
+          const targetElements = d3.selectAll('path, circle')
+            .filter(function() {
+              if (d3.select(this).node().tagName === 'path') {
+                const pathData = d3.select(this).datum();
+                return pathData && pathData.properties && pathData.properties.name === gameState.correctCountry;
+              } else {
+                const title = d3.select(this).select('title');
+                return !title.empty() && title.text() === gameState.correctCountry;
+              }
+            });
+    
+          targetElements.classed('failed', true);
+          targetElements.classed('highlight-target', false);
+    
+          setTimeout(() => selectRandomCountry(), 1500);
+        }
+        return;
+      }
+    
+      let clickedCountryName;
+      if (d && d.properties) {
+        clickedCountryName = d.properties.name;
+      } else if (event.target.tagName === 'circle') {
+        const title = d3.select(event.target).select('title');
+        if (!title.empty()) {
+          clickedCountryName = title.text();
+        }
+      }
+    
+      if (!clickedCountryName) return;
+      
+      if (clickedCountryName === gameState.correctCountry) {
+        const attemptsUsed = 4 - gameState.attempts;
+        gameState.countryAttempts[clickedCountryName] = attemptsUsed;
+        
+        const className = attemptsUsed === 1 ? 'correct-1' : 
+                         attemptsUsed === 2 ? 'correct-2' : 
+                         'correct-3';
+        
+        d3.selectAll('.highlight-target').classed('highlight-target', false);
+        d3.selectAll('.country-label').remove();
+        d3.selectAll('.highlighted-border').classed('highlighted-border', false);
+        
+        const element = event.target.tagName === 'circle' ? 
+          d3.select(event.target) : 
+          d3.select(event.currentTarget);
+        element.classed(className, true);
+        
+        gameState.currentScore += gameState.attempts;
+        document.getElementById('score').textContent = gameState.currentScore;
+        
+        playSound('correct');
+    
+        setTimeout(() => selectRandomCountry(), 1500);
+      } else {
+        gameState.attempts--;
+        
+        const element = event.target.tagName === 'circle' ? 
+          d3.select(event.target) : 
+          d3.select(event.currentTarget);
+        element.classed('wrong-animation', true);
+        
+        playSound('wrong');
+        
+        d3.selectAll('.country-label').remove();
+        d3.selectAll('.highlighted-border').classed('highlighted-border', false);
+        
+        if (gameState.attempts >= 0) {
+          element.classed('highlighted-border', true);
+          
+          let centroid;
+          if (event.target.tagName === 'circle') {
+            centroid = [
+              parseFloat(element.attr('cx')),
+              parseFloat(element.attr('cy'))
+            ];
+          } else if (gameState.currentContinent === 'us-states') {
+            let stateProjection;
+            if (d.properties.name === 'Alaska') {
+              stateProjection = alaskaProjection;
+            } else if (d.properties.name === 'Hawaii') {
+              stateProjection = hawaiiProjection;
+            } else {
+              stateProjection = projection;
+            }
+            const bounds = d3.geoPath().projection(stateProjection).bounds(d);
+            centroid = [
+              (bounds[0][0] + bounds[1][0]) / 2,
+              (bounds[0][1] + bounds[1][1]) / 2
+            ];
+          } else {
+            const bounds = path.bounds(d);
+            centroid = [
+              (bounds[0][0] + bounds[1][0]) / 2,
+              (bounds[0][1] + bounds[1][1]) / 2
+            ];
+          }
+          
+          if (centroid && centroid.every(isFinite)) {
+            g.append('text')
+              .attr('class', 'country-label country-name-label')
+              .attr('x', centroid[0])
+              .attr('y', centroid[1])
+              .text(clickedCountryName);
+          }
+        }
+        
+        document.getElementById('attempts').textContent = `Attempts remaining: ${gameState.attempts}`;
+        
+        if (gameState.attempts <= 0) {
+          const targetElements = d3.selectAll('path, circle')
+            .filter(function(d) {
+              if (d && d.properties) {
+                return d.properties.name === gameState.correctCountry;
+              }
+              const title = d3.select(this).select('title');
+              return !title.empty() && title.text() === gameState.correctCountry;
+            });
+          
+          targetElements.classed('highlight-target', true);
+          
+          if (!targetElements.empty()) {
+            const firstElement = targetElements.nodes()[0];
+            const correctCountryData = d3.select(firstElement).datum() || {
+              properties: { name: gameState.correctCountry }
+            };
+            centerOnCountry(correctCountryData);
+          }
+          
+          document.getElementById('attempts').textContent = 'Click the highlighted country to continue';
+        }
+        
+        setTimeout(() => {
+          element.classed('wrong-animation', false);
+        }, 300);
+      }
+    }
+
+    function handleFreeModeClick(event, d) {
+      if (!gameState.freeMode) return;
+  
+      let clickedCountryName;
+      if (d && d.properties) {
+        clickedCountryName = d.properties.name;
+      } else if (event.target.tagName === 'circle') {
+        const title = d3.select(event.target).select('title');
+        if (!title.empty()) {
+          clickedCountryName = title.text();
+        }
+      }
+  
+      if (clickedCountryName) {
+        // Remove any previous highlights
+        d3.selectAll('.highlight-target').classed('highlight-target', false);
+        d3.selectAll('.country-label').remove();
+        d3.selectAll('.highlighted-border').classed('highlighted-border', false);
+        
+        // Update the info panel with the clicked country's data
+        updateInfoPanel(clickedCountryName);
+      }
+    }
+
+    // Add the free mode toggle handler:
+    function toggleFreeMode(enabled) {
+      gameState.freeMode = enabled;
+      
+      if (enabled) {
+        // Store current game state
+        gameState.gamePaused = true;
+        gameState.originalCorrectCountry = gameState.correctCountry;
+        
+        // Clear game status
+        document.getElementById('current-country').textContent = "Free Mode - Click any country";
+        document.getElementById('attempts').textContent = "Game paused";
+        
+        // Clear info panel
+        updateInfoPanel(null);
+      } else {
+        // Restore game state
+        gameState.gamePaused = false;
+        gameState.correctCountry = gameState.originalCorrectCountry;
+        
+        // Restore game display
+        document.getElementById('current-country').textContent = gameState.correctCountry;
+        document.getElementById('attempts').textContent = `Attempts remaining: ${gameState.attempts}`;
+        
+        // Important: Update info panel with current game country
+        updateInfoPanel(gameState.correctCountry);
+      }
+    }
+
+    // Add event listener initialization in DOMContentLoaded:
+    document.addEventListener('DOMContentLoaded', function() {
+      const showNamesCheckbox = document.getElementById('show-names');
+      
+      showNamesCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+          showAllCountryNames();
+        } else {
+          hideAllCountryNames();
+        }
+      });
+  
+      const soundToggle = document.getElementById('sound-toggle');
+      soundToggle.addEventListener('change', function() {
+        gameState.soundEnabled = this.checked;
+      });
+
+      const freeModeToggle = document.getElementById('free-mode');
+      if (freeModeToggle) {
+        freeModeToggle.addEventListener('change', function() {
+          toggleFreeMode(this.checked);
+        });
+      }
+    });
+  
+    function playSound(type) {
+      if (!gameState.soundEnabled) return;
+      
+      const sound = document.getElementById(type === 'correct' ? 'correct-sound' : 'wrong-sound');
+      if (sound) {
+        sound.currentTime = 0;
+        sound.play().catch(err => console.log('Error playing sound:', err));
+      }
+    }
+  
+    async function updateInfoPanel(countryName) {
+      const infoPanel = document.querySelector('.info-panel');
+      if (!infoPanel) return;
+
+      // Reset loading state
+      infoPanel.classList.add('loading');
+
+      // If no country name provided, show loading state
+      if (!countryName) {
+        const gameStatus = document.querySelector('.game-mode');
+        if (gameStatus) {
+          gameStatus.innerHTML = `
+            <span class="country-name">Select a country</span>
+            <span class="progress">Free Mode</span>
+          `;
+        }
+        infoPanel.classList.add('loading');
+        return;
+      }
+
+      // Determine if we're in free mode or game mode
+      if (gameState.freeMode) {
+        const gameStatus = document.querySelector('.game-mode');
+        if (gameStatus) {
+          gameStatus.innerHTML = `
+            <span class="country-name">${countryName}${gameState.currentContinent === 'us-states' ? ` (${statePostalCodes[countryName]})` : ''}</span>
+            <span class="progress">Free Mode</span>
+          `;
+        }
+      } else {
+        // Game mode display - simplified version without "Find:" and attempts
+        const gameStatus = document.querySelector('.game-mode');
+        if (gameStatus) {
+          gameStatus.innerHTML = `
+            <span class="country-name">${gameState.correctCountry}</span>
+            <span class="progress"></span>
+          `;
+        }
+      }
+
+      // Fetch and update country data
+      if (!gameState.countryData[countryName]) {
+        const data = await fetchCountryData(countryName);
+        if (data) {
+          gameState.countryData[countryName] = data;
+        }
+      }
+
+      // Use cached or newly fetched data
+      const data = gameState.countryData[countryName];
+      if (data) {
+        const capitalElement = infoPanel.querySelector('.capital-value');
+        const populationElement = infoPanel.querySelector('.population-value');
+        const languageElement = infoPanel.querySelector('.language-value');
+        const currencyElement = infoPanel.querySelector('.currency-value');
+        const flagElement = infoPanel.querySelector('.country-flag');
+
+        if (capitalElement) capitalElement.textContent = data.capital;
+        if (populationElement) populationElement.textContent = data.population;
+        if (languageElement) languageElement.textContent = data.language;
+        if (currencyElement) currencyElement.textContent = data.currency;
+        if (flagElement && data.flagUrl) flagElement.src = data.flagUrl;
+      }
+
+      infoPanel.classList.remove('loading');
+    }
+  
+    async function fetchCountryData(countryName) {
+      // Check for invalid country name early
+      if (!countryName) {
+          console.error('fetchCountryData called with invalid countryName:', countryName);
+          return {
+              capital: 'Not available',
+              population: 'Not available',
+              flagUrl: '',
+              language: 'Not available',
+              currency: 'Not available'
+          };
+      }
+
+      // Normalize after validation
+      const normalizedName = normalizeCountryName(countryName);
+      
+      try {
+        if (gameState.currentContinent === 'us-states') {
+          const stateData = {
+  "Alabama": {
+    "capital": "Montgomery",
+    "population": "5,024,279",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Channing_Tatum_by_Gage_Skidmore_3.jpg/800px-Channing_Tatum_by_Gage_Skidmore_3.jpg?state=Alabama",
+    "currency": "Republican"
+  },
+  "Alaska": {
+    "capital": "Juneau",
+    "population": "733,391",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Sarah_Palin_%2851769866572%29_%28cropped%29.jpg/1200px-Sarah_Palin_%2851769866572%29_%28cropped%29.jpg?state=Alaska",
+    "currency": "Republican"
+  },
+  "Arizona": {
+    "capital": "Phoenix",
+    "population": "7,151,502",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/MKr25402_Steven_Spielberg_%28Berlinale_2023%29.jpg/1200px-MKr25402_Steven_Spielberg_%28Berlinale_2023%29.jpg?state=Arizona",
+    "currency": "Swing"
+  },
+  "Arkansas": {
+    "capital": "Little Rock",
+    "population": "3,011,524",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Bill_Clinton.jpg/330px-Bill_Clinton.jpg?state=Arkansas",
+    "currency": "Republican"
+  },
+  "California": {
+    "capital": "Sacramento",
+    "population": "39,538,223",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Tom_Hanks_TIFF_2019.jpg?state=California",
+    "currency": "Democratic"
+  },
+  "Colorado": {
+    "capital": "Denver",
+    "population": "5,773,714",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Amy_Adams_UK_Nocturnal_Animals_Premiere_%28cropped%29.jpg/640px-Amy_Adams_UK_Nocturnal_Animals_Premiere_%28cropped%29.jpg?state=Colorado",
+    "currency": "Democratic"
+  },
+  "Connecticut": {
+    "capital": "Hartford",
+    "population": "3,605,944",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/George-W-Bush.jpeg/640px-George-W-Bush.jpeg?state=Connecticut",
+    "currency": "Democratic"
+  },
+  "Delaware": {
+    "capital": "Dover",
+    "population": "989,948",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Aubrey_Plaza_at_the_2024_Cannes_Film_Festival_%28cropped%29.jpg/800px-Aubrey_Plaza_at_the_2024_Cannes_Film_Festival_%28cropped%29.jpg?state=Delaware",
+    "currency": "Democratic"
+  },
+  "Florida": {
+    "capital": "Tallahassee",
+    "population": "21,538,187",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/5/55/TechCrunch_Disrupt_San_Francisco_2019_-_Day_1_%2848834070763%29_%28cropped%29.jpg?state=Florida",
+    "currency": "Republican"
+  },
+  "Georgia": {
+    "capital": "Atlanta",
+    "population": "10,711,908",
+    "landmark": "https://cdn.britannica.com/01/236601-050-2CFDF711/Julia-Roberts-2019.jpg?state=Georgia",
+    "currency": "Swing"
+  },
+  "Hawaii": {
+    "capital": "Honolulu",
+    "population": "1,455,271",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/President_Barack_Obama.jpg/1200px-President_Barack_Obama.jpg?state=Hawaii",
+    "currency": "Democratic"
+  },
+  "Idaho": {
+    "capital": "Boise",
+    "population": "1,839,106",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/3/33/Demi_Moore_at_the_2024_Toronto_International_Film_Festival_3_%28cropped%29_%28cropped%29.jpg?state=Idaho",
+    "currency": "Republican"
+  },
+  "Illinois": {
+    "capital": "Springfield",
+    "population": "12,812,508",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Harrison_Ford_2017.jpg/640px-Harrison_Ford_2017.jpg?state=Illinois",
+    "currency": "Democratic"
+  },
+  "Indiana": {
+    "capital": "Indianapolis",
+    "population": "6,785,528",
+    "landmark": "https://cdn-p.smehost.net/sites/28d35d54a3c64e2b851790a18a1c4c18/wp-content/uploads/2019/03/Apr2019Mobile.jpg?state=Indiana",
+    "currency": "Republican"
+  },
+  "Iowa": {
+    "capital": "Des Moines",
+    "population": "3,190,369",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Ashton_Kutcher_by_David_Shankbone_2010_NYC.jpg/1200px-Ashton_Kutcher_by_David_Shankbone_2010_NYC.jpg?state=Iowa",
+    "currency": "Swing"
+  },
+  "Kansas": {
+    "capital": "Topeka",
+    "population": "2,937,880",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Paul_Rudd_%28cropped%29_2.jpg/640px-Paul_Rudd_%28cropped%29_2.jpg?state=Kansas",
+    "currency": "Republican"
+  },
+  "Kentucky": {
+    "capital": "Frankfort",
+    "population": "4,505,836",
+    "landmark": "https://cdn.britannica.com/86/192386-050-D7F3126D/Muhammad-Ali-American.jpg?state=Kentucky",
+    "currency": "Republican"
+  },
+  "Louisiana": {
+    "capital": "Baton Rouge",
+    "population": "4,657,757",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Louis_Armstrong_restored.jpg/640px-Louis_Armstrong_restored.jpg?state=Louisiana",
+    "currency": "Republican"
+  },
+  "Maine": {
+    "capital": "Augusta",
+    "population": "1,362,359",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/2/24/Stephen_King_at_the_2024_Toronto_International_Film_Festival_2_%28cropped%29.jpg?state=Maine",
+    "currency": "Democratic"
+  },
+  "Maryland": {
+    "capital": "Annapolis",
+    "population": "6,177,224",
+    "landmark": "https://a.espncdn.com/combiner/i?img=/i/headshots/nba/players/full/3202.png?state=Maryland",
+    "currency": "Democratic"
+            },
+            "Massachusetts": {
+    "capital": "Boston",
+    "population": "7,029,917",
+    "landmark": "https://m.media-amazon.com/images/M/MV5BMjMyOTM2OTk1Ml5BMl5BanBnXkFtZTgwMTI3MzkyNjM@._V1_.jpg?state=Massachusetts",
+    "currency": "Democratic"
+  },
+  "Michigan": {
+    "capital": "Lansing",
+    "population": "10,077,331",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Kristen_Bell_Paris_Fashion_Week_Spring_Summer_2020_%28cropped%29.jpg/800px-Kristen_Bell_Paris_Fashion_Week_Spring_Summer_2020_%28cropped%29.jpg?state=Michigan",
+    "currency": "Swing"
+  },
+  "Minnesota": {
+    "capital": "Saint Paul",
+    "population": "5,706,494",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/DylanYoungKilkenny140719v2_%2850_of_52%29_%2852246124397%29_%28cropped%29.jpg/640px-DylanYoungKilkenny140719v2_%2850_of_52%29_%2852246124397%29.jpg?state=Minnesota",
+    "currency": "Democratic"
+  },
+  "Mississippi": {
+    "capital": "Jackson",
+    "population": "2,961,279",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Elvis_Presley_promoting_Jailhouse_Rock.jpg/800px-Elvis_Presley_promoting_Jailhouse_Rock.jpg?state=Mississippi",
+    "currency": "Republican"
+  },
+  "Missouri": {
+    "capital": "Jefferson City",
+    "population": "6,154,913",
+    "landmark": "https://m.media-amazon.com/images/M/MV5BMTMyOTYzODQ5MF5BMl5BanBnXkFtZTcwMjE3MDgzMQ@@._V1_FMjpg_UX1000_.jpg?state=Missouri",
+    "currency": "Republican"
+  },
+  "Montana": {
+    "capital": "Helena",
+    "population": "1,084,225",
+    "landmark": "https://m.media-amazon.com/images/M/MV5BMTQ1MTY2MTY2Nl5BMl5BanBnXkFtZTcwMDg1ODYwNA@@._V1_.jpg?state=Montana",
+    "currency": "Republican"
+  },
+  "Nebraska": {
+    "capital": "Lincoln",
+    "population": "1,961,504",
+    "landmark": "https://m.media-amazon.com/images/M/MV5BMTg3MDYyMDE5OF5BMl5BanBnXkFtZTcwNjgyNTEzNA@@._V1_QL75_UY207_CR64,0,140,207_.jpg?state=Nebraska",
+    "currency": "Republican"
+  },
+  "Nevada": {
+    "capital": "Carson City",
+    "population": "3,104,614",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Las_Vegas_63.jpg/1920px-Las_Vegas_63.jpg?state=Nevada",
+    "currency": "Swing"
+  },
+  "New Hampshire": {
+    "capital": "Concord",
+    "population": "1,377,529",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Adam_Sandler_at_Berlinale_2024.jpg/800px-Adam_Sandler_at_Berlinale_2024.jpg?state=New Hampshire",
+    "currency": "Swing"
+  },
+  "New Jersey": {
+    "capital": "Trenton",
+    "population": "9,288,994",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/Bruce_Willis_by_Gage_Skidmore_3.jpg/640px-Bruce_Willis_by_Gage_Skidmore_3.jpg?state=New Jersey",
+    "currency": "Democratic"
+  },
+  "New Mexico": {
+    "capital": "Santa Fe",
+    "population": "2,117,522",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/1/19/5.3.10NeilPatrickHarrisByDavidShankbone.jpg?state=New Mexico",
+    "currency": "Democratic"
+  },
+  "New York": {
+    "capital": "Albany",
+    "population": "20,201,249",
+    "landmark": "https://m.media-amazon.com/images/M/MV5BMjM3OTUwMDYwNl5BMl5BanBnXkFtZTcwNTUyNzc3Nw@@._V1_FMjpg_UX1000_.jpg?state=New York",
+    "currency": "Democratic"
+  },
+  "North Carolina": {
+    "capital": "Raleigh",
+    "population": "10,439,388",
+    "landmark": "https://cdn.nba.com/headshots/nba/latest/1040x760/893.png?state=North Carolina",
+    "currency": "Swing"
+  },
+  "North Dakota": {
+    "capital": "Bismarck",
+    "population": "779,094",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Josh_Duhamel_SXSW_2017_%28cropped%29.jpg/800px-Josh_Duhamel_SXSW_2017_%28cropped%29.jpg?state=North Dakota",
+    "currency": "Republican"
+  },
+  "Ohio": {
+    "capital": "Columbus",
+    "population": "11,799,448",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/LeBron_James_%2851959977144%29_%28cropped2%29.jpg/800px-LeBron_James_%2851959977144%29_%28cropped2%29.jpg?state=Ohio",
+    "currency": "Swing"
+  },
+  "Oklahoma": {
+    "capital": "Oklahoma City",
+    "population": "3,959,353",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Brad_Pitt-69858.jpg/800px-Brad_Pitt-69858.jpg?state=Oklahoma",
+    "currency": "Republican"
+  },
+  "Oregon": {
+    "capital": "Salem",
+    "population": "4,237,256",
+    "landmark": "https://i.postimg.cc/rFDnyYB4/Ty-Burrell-2014.jpg?state=Oregon",
+    "currency": "Democratic"
+  },
+  "Pennsylvania": {
+    "capital": "Harrisburg",
+    "population": "13,002,700",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/b/b1/Taylor_Swift_at_the_2023_MTV_Video_Music_Awards_%283%29.png?state=Pennsylvania",
+    "currency": "Swing"
+  },
+  "Rhode Island": {
+    "capital": "Providence",
+    "population": "1,097,379",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Viola_Davis_at_the_Air_Premiere_at_SXSW_%28cropped%29.jpg/640px-Viola_Davis_at_the_Air_Premiere_at_SXSW_%28cropped%29.jpg?state=Rhode Island",
+    "currency": "Democratic"
+  },
+  "Texas": {     
+    "capital": "Austin",
+    "population": "29,145,505",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/c/ce/Beyonc%C3%A9_-_Tottenham_Hotspur_Stadium_-_1st_June_2023_%2825_of_118%29_%2852946287590%29_%28center_cropped%29.jpg?state=Texas",
+    "currency": "Republican"
+  },
+  "Utah": {
+    "capital": "Salt Lake City",
+    "population": "3,271,616",
+    "landmark": "https://m.media-amazon.com/images/M/MV5MTQzMjkwNTQ2OF5BMl5BanBnXkFtZTgwNTQ4MTQ4MTE@._V1_FMjpg_UX1000_.jpg?state=Utah",
+    "currency": "Republican"
+  },
+  "South Carolina": {
+    "capital": "Columbia",
+    "population": "5,148,714",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Aziz_Ansari_2012_Shankbone.JPG/198px-Aziz_Ansari_2012_Shankbone.JPG?state=South Carolina",
+    "currency": "Republican"
+  },
+  "Vermont": {
+    "capital": "Montpelier",
+    "population": "643,077",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/2/2e/Bernie_Sanders_2023.jpg?state=Vermont",
+    "currency": "Democratic"
+  },
+  "Virginia": {
+    "capital": "Richmond",
+    "population": "8,631,393",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Sandra_Bullock_in_July_2013.jpg/800px-Sandra_Bullock_in_July_2013.jpg?state=Virginia",
+    "currency": "Swing"
+  },
+  "Washington": {
+    "capital": "Olympia",
+    "population": "7,705,281",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Bill_Gates%2C_September_2024.jpg?state=Washington",
+    "currency": "Democratic"
+  },
+  "West Virginia": {
+    "capital": "Charleston",
+    "population": "1,793,716",
+    "landmark": "https://m.media-amazon.com/images/M/MV5BMjA5NTczNTMxNl5BMl5BanBnXkFtZTgwNDU5OTExNzM@._V1_.jpg?state=West Virginia",
+    "currency": "Republican"
+  },
+  "Wisconsin": {
+    "capital": "Madison",
+    "population": "5,893,718",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Mark_Ruffalo_%2836201774756%29_%28cropped%29.jpg/640px-Mark_Ruffalo_%2836201774756%29_%28cropped%29.jpg?state=Wisconsin",
+    "currency": "Swing"
+  },
+  "Wyoming": {
+    "capital": "Cheyenne",
+    "population": "576,851",
+    "landmark": "https://travel.home.sndimg.com/content/dam/images/travel/fullset/2015/01/08ET/top-10-wonders-west-yellowstone-national-park.jpg.rend.hgtvcom.476.357.suffix/1491581132559.jpeg?state=Wyoming",
+    "currency": "Republican"
+  }
+          };
+
+          const stateInfo = stateData[countryName];
+          if (stateInfo) {
+            return {
+              capital: stateInfo.capital,
+              population: stateInfo.population,
+              flagUrl: stateInfo.landmark,
+              language: "English", // Keep single language for US states
+              currency: stateInfo.currency
+            };
+          }
+          return {
+            capital: 'Not available',
+            population: 'Not available',
+            flagUrl: '',
+            currency: 'Not available'
+          };
+        }
+
+        // Fetch country data for non-US states
+        const response = await fetch(`https://restcountries.com/v3.1/name/${normalizedName}`);
+        if (!response.ok) throw new Error('Country not found');
+        
+        const data = await response.json();
+        const country = data[0];
+
+        // Extract the top 2 languages
+        let languages = 'Not available';
+        if (country.languages) {
+          const languageValues = Object.values(country.languages);
+          if (languageValues.length >= 2) {
+            languages = `${languageValues[0]} | ${languageValues[1]}`;
+          } else if (languageValues.length === 1) {
+            languages = languageValues[0];
+          }
+        }
+
+        // Extract the currency
+        let currency = 'Not available';
+        if (country.currencies) {
+          currency = Object.values(country.currencies)[0].name;
+        }
+
+        return {
+          capital: country.capital ? country.capital[0] : 'N/A',
+          population: country.population ? 
+            new Intl.NumberFormat().format(country.population) : 'N/A',
+          flagUrl: country.flags ? country.flags.svg : '',
+          language: languages, // Modified to include up to 2 languages
+          currency: currency
+        };
+      } catch (error) {
+        console.error('Error fetching country data:', error);
+        return {
+          capital: 'Not available',
+          population: 'Not available',
+          flagUrl: '',
+          language: 'Not available',
+          currency: 'Not available'
+        };
+      }
+    }
+  
+    function normalizeCountryName(name) {
+      const nameMap = {
+        'United States': 'USA',
+        'Bosnia and Herz.': 'Bosnia and Herzegovina',
+        'Czech Republic': 'Czechia',
+        'Dominican Rep.': 'Dominican Rep.',
+        'Macedonia': 'North Macedonia',
+        'Vatican City': 'Holy See',
+        'Swaziland': 'Eswatini',
+        'Burma': 'Myanmar',
+        'Timor-Leste': 'East Timor',
+        'United Kingdom': 'UK',
+        'Russia': 'Russian Federation',
+        'Congo': 'Republic of the Congo',
+        'Democratic Republic of the Congo': 'DR Congo',
+        'South Korea': 'Korea, Republic of',
+        'North Korea': 'Korea, Democratic People\'s Republic of',
+        'Dominican Rep.': 'Dominican Republic',
+      };
+      return nameMap[name] || name;
+    }
+  
+    function updateTimer() {
+      if (!gameState.startTime || gameState.gamePaused) return;
+      
+      const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+      const minutes = Math.floor(elapsed / 60);
+      const seconds = elapsed % 60;
+      
+      const timerElement = document.querySelector('.timer');
+      if (timerElement) {
+        timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      }
+    }
+  
+    function startTimer() {
+      if (gameState.gamePaused) return;
+      gameState.startTime = Date.now();
+      if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+      gameState.timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    function returnToMenu() {
+      // Reset projections
+      projection = d3.geoMercator();
+      path = d3.geoPath().projection(projection);
+      alaskaProjection = null;
+      hawaiiProjection = null;
+
+      // Reset game state
+      gameState.attempts = 3;
+      gameState.usedCountries = new Set();
+      gameState.currentScore = 0;
+      gameState.countryAttempts = {};
+      gameState.timerStarted = false;
+      gameState.startTime = null;
+      gameState.totalTime = 0;
+      gameState.currentContinent = null;
+      gameState.correctCountry = null;
+      gameState.freeMode = false;
+      gameState.gamePaused = false;
+      gameState.originalCorrectCountry = null;
+
+      // Reset free mode checkbox if it exists
+      const freeModeCheckbox = document.getElementById('free-mode');
+      if (freeModeCheckbox) {
+        freeModeCheckbox.checked = false;
+      }
+      
+      // Stop timer if running
+      if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+        gameState.timerInterval = null;
+      }
+      
+      // Reset displays
+      document.getElementById('score').textContent = '0';
+      
+      // Hide game container and show menu
+      document.getElementById('game-container').style.display = 'none';
+      document.getElementById('start-screen').style.display = 'block';
+      
+      // Reset game title
+      document.getElementById('game-title').textContent = 'Geography Challenge';
+      
+      // Clear any map highlights or labels
+      d3.selectAll('.highlight-target').classed('highlight-target', false);
+      d3.selectAll('.country-label').remove();
+      d3.selectAll('.highlighted-border').classed('highlighted-border', false);
+      d3.selectAll('.correct-1, .correct-2, .correct-3, .failed').classed('correct-1 correct-2 correct-3 failed', false);
+      
+      // Remove the map
+      d3.select('#map-container svg').remove();
+    }
+
+    function restartGame() {
+      // Reset game state
+      gameState.attempts = 3;
+      gameState.usedCountries = new Set();
+      gameState.currentScore = 0;
+      gameState.countryAttempts = {};
+      gameState.timerStarted = false;
+      gameState.startTime = null;
+      gameState.totalTime = 0;
+      gameState.correctCountry = null;
+      gameState.gamePaused = false;
+      gameState.originalCorrectCountry = null;
+
+      // Reset free mode checkbox if it exists
+      const freeModeCheckbox = document.getElementById('free-mode');
+      if (freeModeCheckbox) {
+        freeModeCheckbox.checked = false;
+      }
+
+      // Stop timer if running
+      if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+        gameState.timerInterval = null;
+      }
+
+      // Reset displays
+      document.getElementById('score').textContent = '0';
+      document.getElementById('attempts').textContent = `Attempts remaining: ${gameState.attempts}`;
+
+      // Clear any map highlights or labels
+      d3.selectAll('.highlight-target').classed('highlight-target', false);
+      d3.selectAll('.country-label').remove();
+      d3.selectAll('.highlighted-border').classed('highlighted-border', false);
+      d3.selectAll('.correct-1, .correct-2, .correct-3, .failed').classed('correct-1 correct-2 correct-3 failed', false);
+
+      // Select a new random country and update info panel
+      selectRandomCountry();
+    }
+
+    // Add new handler functions
+    function handleTryAgain() {
+      document.querySelector('.results-screen').style.display = 'none';
+      restartGame();
+    }
+
+    function handleNewMap() {
+      document.querySelector('.results-screen').style.display = 'none';
+      returnToMenu();
+    }
+  </script>
+  </body></html>
