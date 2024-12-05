@@ -1,4 +1,5 @@
 <html><head><base href="https://websim.ai/" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+CiAgPHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjMWYyOTM3IiByeD0iMTIiLz4KICA8Y2lyY2xlIGN4PSIyNCIgY3k9IjI0IiByPSIyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjODE4Q0Y4IiBzdHJva2Utd2lkdGg9IjMiLz4KICA8cGF0aCBkPSJNMTIsMjRjMCw2LjYyNzQgNS4zNzI2LDEyIDEyLDEyczEyLTUuMzcyNiAxMi0xMmgtMjRaIiBmaWxsPSIjODE4Q0Y4Ii8+CiAgIDxwYXRoIGQ9Ik0yNCwxMnYyNCIgc3Ryb2tlPSIjODE4Q0Y4IiBzdHJva2Utd2lkdGg9IjMiLz4KICAgPHBhdGggZD0iTTE0LDI0aDIwIiBzdHJva2U9IiM4MThDRjgiIHN0cm9rZS13aWR0aD0iMyIvPgo8L3N2Zz4="/>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script src="https://unpkg.com/topojson@3.0.2/dist/topojson.min.js"></script>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -662,7 +663,12 @@
       'Kentucky': 'KY',
       'Louisiana': 'LA',
       'Maine': 'ME',
-      'Maryland': 'MD',
+      'Maryland': {
+        "capital": "Annapolis",
+        "population": "6,177,224",
+        "landmark": "https://a.espncdn.com/combiner/i?img=/i/headshots/nba/players/full/3202.png?state=Maryland",
+        "currency": "Democratic"
+      },
       'Massachusetts': 'MA',
       'Michigan': 'MI',
       'Minnesota': 'MN',
@@ -1733,6 +1739,8 @@
   "Maine": {
     "capital": "Augusta",
     "population": "1,362,359",
+    "capital": "Augusta",
+    "population": "1,362,359",
     "landmark": "https://upload.wikimedia.org/wikipedia/commons/2/24/Stephen_King_at_the_2024_Toronto_International_Film_Festival_2_%28cropped%29.jpg?state=Maine",
     "currency": "Democratic"
   },
@@ -1741,8 +1749,8 @@
     "population": "6,177,224",
     "landmark": "https://a.espncdn.com/combiner/i?img=/i/headshots/nba/players/full/3202.png?state=Maryland",
     "currency": "Democratic"
-            },
-            "Massachusetts": {
+  },
+  "Massachusetts": {
     "capital": "Boston",
     "population": "7,029,917",
     "landmark": "https://m.media-amazon.com/images/M/MV5BMjMyOTM2OTk1Ml5BMl5BanBnXkFtZTgwMTI3MzkyNjM@._V1_.jpg?state=Massachusetts",
@@ -1775,13 +1783,13 @@
   "Montana": {
     "capital": "Helena",
     "population": "1,084,225",
-    "landmark": "https://m.media-amazon.com/images/M/MV5BMTQ1MTY2MTY2Nl5BMl5BanBnXkFtZTcwMDg1ODYwNA@@._V1_.jpg?state=Montana",
+    "landmark": "https://m.media-amazon.com/images/M/MV5BMjQ1MTY2MTY2Nl5BMl5BanBnXkFtZTcwMDg1ODYwNA@@._V1_.jpg?state=Montana",
     "currency": "Republican"
   },
   "Nebraska": {
     "capital": "Lincoln",
     "population": "1,961,504",
-    "landmark": "https://m.media-amazon.com/images/M/MV5BMTg3MDYyMDE5OF5BMl5BanBnXkFtZTcwNjgyNTEzNA@@._V1_QL75_UY207_CR64,0,140,207_.jpg?state=Nebraska",
+    "landmark": "https://m.media-amazon.com/images/M/MV5BMjA4MDAzMjM1OV5BMl5BanBnXkFtZTcwNjgyNTEzNA@@._V1_QL75_UY207_CR64,0,140,207_.jpg?state=Nebraska",
     "currency": "Republican"
   },
   "Nevada": {
@@ -1901,7 +1909,7 @@
   "Wisconsin": {
     "capital": "Madison",
     "population": "5,893,718",
-    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Mark_Ruffalo_%2836201774756%29_%28cropped%29.jpg/640px-Mark_Ruffalo_%2836201774756%29_%28cropped%29.jpg?state=Wisconsin",
+    "landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Mark_Ruffalo_%2836201774756%29_%28cropped%29.jpg/640px-Mark_Ruffalo_%2836201774756%29.jpg?state=Wisconsin",
     "currency": "Swing"
   },
   "Wyoming": {
